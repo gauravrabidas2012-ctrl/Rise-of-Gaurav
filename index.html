@@ -1,1 +1,474 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>RISE OF GAURAV | Open World</title>
+
+<style>
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  overflow: hidden;
+  background: #101820;
+  color: white;
+  font-family: Arial, sans-serif;
+  touch-action: none;
+}
+
+#game {
+  position: fixed;
+  inset: 0;
+}
+
+#hud {
+  position: fixed;
+  top: 18px;
+  left: 16px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.logo {
+  font-size: 21px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  text-shadow: 0 2px 12px #000;
+}
+
+.subtitle {
+  margin-top: 5px;
+  color: #80f5cf;
+  font-size: 10px;
+  letter-spacing: 3px;
+}
+
+#mission {
+  margin-top: 17px;
+  padding: 10px 13px;
+  border-left: 3px solid #80f5cf;
+  background: rgba(0,0,0,.48);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+#status {
+  position: fixed;
+  right: 14px;
+  top: 18px;
+  z-index: 2;
+  padding: 10px 12px;
+  background: rgba(0,0,0,.5);
+  border-radius: 8px;
+  font-size: 11px;
+}
+
+#controls {
+  position: fixed;
+  bottom: 22px;
+  left: 18px;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: repeat(3, 52px);
+  grid-template-rows: repeat(2, 52px);
+  gap: 5px;
+}
+
+button {
+  border: 1px solid rgba(255,255,255,.28);
+  background: rgba(15,25,35,.78);
+  color: white;
+  border-radius: 14px;
+  font-size: 22px;
+  font-weight: bold;
+  touch-action: none;
+}
+
+button:active {
+  background: rgba(65,220,175,.65);
+}
+
+#up { grid-column: 2; grid-row: 1; }
+#left { grid-column: 1; grid-row: 2; }
+#down { grid-column: 2; grid-row: 2; }
+#right { grid-column: 3; grid-row: 2; }
+
+#action {
+  position: fixed;
+  bottom: 32px;
+  right: 20px;
+  z-index: 3;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: rgba(30,160,120,.8);
+  font-size: 12px;
+}
+
+#hint {
+  position: fixed;
+  bottom: 125px;
+  right: 18px;
+  z-index: 2;
+  font-size: 10px;
+  color: #d7e8e5;
+  text-shadow: 0 1px 4px #000;
+}
+
+#loading {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  background: #101820;
+  text-align: center;
+  padding: 25px;
+}
+
+#loading h1 {
+  font-size: 26px;
+  letter-spacing: 3px;
+}
+
+#loading p {
+  margin-top: 12px;
+  color: #80f5cf;
+  font-size: 13px;
+}
+
+</style>
+</head>
+
+<body>
+<div id="game"></div>
+
+<div id="hud">
+  <div class="logo">RISE OF GAURAV</div>
+  <div class="subtitle">OPEN WORLD PROJECT</div>
+  <div id="mission">
+    FIRST STEPS<br>
+    Explore the city<br>
+    <span id="objective">Find your way.</span>
+  </div>
+</div>
+
+<div id="status">CITY EXPLORER<br>ON FOOT</div>
+
+<div id="controls">
+  <button id="up">▲</button>
+  <button id="left">◀</button>
+  <button id="down">▼</button>
+  <button id="right">▶</button>
+</div>
+
+<div id="hint">MOVE AROUND THE CITY</div>
+<button id="action">EXPLORE</button>
+
+<div id="loading">
+  <div>
+    <h1>RISE OF GAURAV</h1>
+    <p>Building your world...</p>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from
+'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js';
+
+const container = document.getElementById('game');
+const loading = document.getElementById('loading');
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x91b9c7);
+scene.fog = new THREE.Fog(0x91b9c7, 90, 300);
+
+const camera = new THREE.PerspectiveCamera(
+  65,
+  innerWidth / innerHeight,
+  0.1,
+  500
+);
+
+const renderer = new THREE.WebGLRenderer({
+  antialias: false,
+  powerPreference: 'low-power'
+});
+
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = false;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+container.appendChild(renderer.domElement);
+
+scene.add(new THREE.HemisphereLight(0xe0f3ff, 0x53604c, 2));
+
+const sunlight = new THREE.DirectionalLight(0xffe0b0, 2);
+sunlight.position.set(40, 80, 30);
+scene.add(sunlight);
+
+// Ground
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(400, 400),
+  new THREE.MeshLambertMaterial({ color: 0x607b58 })
+);
+ground.rotation.x = -Math.PI / 2;
+ground.position.y = -0.12;
+scene.add(ground);
+
+// Roads
+const roadMaterial = new THREE.MeshLambertMaterial({
+  color: 0x303840
+});
+
+function road(x, z, width, length) {
+  const mesh = new THREE.Mesh(
+    new THREE.BoxGeometry(width, 0.12, length),
+    roadMaterial
+  );
+  mesh.position.set(x, -0.02, z);
+  scene.add(mesh);
+}
+
+for (let i = -4; i <= 4; i++) {
+  road(i * 32, 0, 9, 300);
+  road(0, i * 32, 300, 9);
+}
+
+// Road markings
+const lineMaterial = new THREE.MeshBasicMaterial({
+  color: 0xe4dca9
+});
+
+for (let i = -4; i <= 4; i++) {
+  for (let j = -8; j <= 8; j++) {
+    const line = new THREE.Mesh(
+      new THREE.BoxGeometry(0.18, 0.025, 3),
+      lineMaterial
+    );
+    line.position.set(i * 32, 0.055, j * 18);
+    scene.add(line);
+
+    const line2 = new THREE.Mesh(
+      new THREE.BoxGeometry(3, 0.025, 0.18),
+      lineMaterial
+    );
+    line2.position.set(j * 18, 0.055, i * 32);
+    scene.add(line2);
+  }
+}
+
+// Buildings
+const buildingMaterials = [
+  0xaaa7a0, 0xc3b4a0, 0x8299a7,
+  0xd0c7b7, 0x777f89, 0xb3a08c
+].map(color => new THREE.MeshLambertMaterial({ color }));
+
+let seed = 13579;
+
+function random() {
+  seed = (seed * 16807) % 2147483647;
+  return (seed - 1) / 2147483646;
+}
+
+for (let x = -144; x <= 144; x += 16) {
+  for (let z = -144; z <= 144; z += 16) {
+    if (Math.abs(x % 32) < 9 || Math.abs(z % 32) < 9) {
+      continue;
+    }
+
+    const w = 7 + random() * 5;
+    const d = 7 + random() * 5;
+    const h = 8 + random() * 32;
+
+    const building = new THREE.Mesh(
+      new THREE.BoxGeometry(w, h, d),
+      buildingMaterials[
+        Math.floor(random() * buildingMaterials.length)
+      ]
+    );
+
+    building.position.set(x + random() * 2, h / 2, z + random() * 2);
+    scene.add(building);
+
+    // Rooftop details
+    if (random() > 0.55) {
+      const roof = new THREE.Mesh(
+        new THREE.BoxGeometry(w * 0.3, 1.5, d * 0.3),
+        buildingMaterials[4]
+      );
+
+      roof.position.set(
+        building.position.x,
+        h + 0.75,
+        building.position.z
+      );
+
+      scene.add(roof);
+    }
+  }
+}
+
+// Player: original placeholder character named Gaurav
+const player = new THREE.Group();
+
+const skin = new THREE.MeshLambertMaterial({ color: 0xb77c52 });
+const shirt = new THREE.MeshLambertMaterial({ color: 0x252b3a });
+const pants = new THREE.MeshLambertMaterial({ color: 0x252d3a });
+
+const body = new THREE.Mesh(
+  new THREE.BoxGeometry(0.9, 1.3, 0.55),
+  shirt
+);
+body.position.y = 1.65;
+player.add(body);
+
+const head = new THREE.Mesh(
+  new THREE.SphereGeometry(0.38, 12, 10),
+  skin
+);
+head.position.y = 2.55;
+player.add(head);
+
+const legs = [];
+
+for (const side of [-1, 1]) {
+  const leg = new THREE.Mesh(
+    new THREE.BoxGeometry(0.32, 0.85, 0.38),
+    pants
+  );
+  leg.position.set(side * 0.23, 0.58, 0);
+  player.add(leg);
+  legs.push(leg);
+}
+
+player.position.set(0, 0, 5);
+scene.add(player);
+
+const keys = {
+  up: false,
+  down: false,
+  left: false,
+  right: false
+};
+
+function bindButton(id, key) {
+  const button = document.getElementById(id);
+
+  const start = event => {
+    event.preventDefault();
+    keys[key] = true;
+  };
+
+  const stop = event => {
+    event.preventDefault();
+    keys[key] = false;
+  };
+
+  button.addEventListener('pointerdown', start);
+  button.addEventListener('pointerup', stop);
+  button.addEventListener('pointercancel', stop);
+  button.addEventListener('pointerleave', stop);
+}
+
+bindButton('up', 'up');
+bindButton('down', 'down');
+bindButton('left', 'left');
+bindButton('right', 'right');
+
+addEventListener('keydown', event => {
+  if (event.key === 'ArrowUp' || event.key.toLowerCase() === 'w') keys.up = true;
+  if (event.key === 'ArrowDown' || event.key.toLowerCase() === 's') keys.down = true;
+  if (event.key === 'ArrowLeft' || event.key.toLowerCase() === 'a') keys.left = true;
+  if (event.key === 'ArrowRight' || event.key.toLowerCase() === 'd') keys.right = true;
+});
+
+addEventListener('keyup', event => {
+  if (event.key === 'ArrowUp' || event.key.toLowerCase() === 'w') keys.up = false;
+  if (event.key === 'ArrowDown' || event.key.toLowerCase() === 's') keys.down = false;
+  if (event.key === 'ArrowLeft' || event.key.toLowerCase() === 'a') keys.left = false;
+  if (event.key === 'ArrowRight' || event.key.toLowerCase() === 'd') keys.right = false;
+});
+
+let cameraAngle = 0;
+let steps = 0;
+
+document.getElementById('action').addEventListener('click', () => {
+  cameraAngle += Math.PI / 4;
+
+  const distance = 10;
+  camera.position.x = player.position.x + Math.sin(cameraAngle) * distance;
+  camera.position.z = player.position.z + Math.cos(cameraAngle) * distance;
+
+  document.getElementById('objective').textContent =
+    'City explored: ' + Math.floor(steps) + ' steps';
+});
+
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+
+  const delta = Math.min(clock.getDelta(), 0.04);
+
+  let move = 0;
+  let turn = 0;
+
+  if (keys.up) move += 1;
+  if (keys.down) move -= 1;
+  if (keys.left) turn += 1;
+  if (keys.right) turn -= 1;
+
+  player.rotation.y += turn * delta * 2.5;
+
+  if (move !== 0) {
+    player.position.x += Math.sin(player.rotation.y) * move * delta * 7;
+    player.position.z += Math.cos(player.rotation.y) * move * delta * 7;
+    steps += delta * 7;
+
+    legs[0].rotation.x = Math.sin(steps * 3) * 0.55;
+    legs[1].rotation.x = -Math.sin(steps * 3) * 0.55;
+  } else {
+    legs[0].rotation.x = 0;
+    legs[1].rotation.x = 0;
+  }
+
+  // Third-person camera
+  const distance = 9;
+  const targetX = player.position.x - Math.sin(player.rotation.y) * distance;
+  const targetZ = player.position.z - Math.cos(player.rotation.y) * distance;
+
+  camera.position.x += (targetX - camera.position.x) * 0.08;
+  camera.position.y += (5.5 - camera.position.y) * 0.08;
+  camera.position.z += (targetZ - camera.position.z) * 0.08;
+
+  camera.lookAt(
+    player.position.x,
+    player.position.y + 1.3,
+    player.position.z
+  );
+
+  renderer.render(scene, camera);
+}
+
+camera.position.set(0, 5.5, 14);
+camera.lookAt(player.position);
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+animate();
+
+loading.style.display = 'none';
+</script>
+</body>
+</html>
